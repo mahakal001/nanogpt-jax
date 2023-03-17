@@ -14,6 +14,7 @@ class Head(eqx.Module):
     value: jnp.ndarray
     tril: jnp.ndarray = static_field()
     dropout_rate: float = static_field()
+    head_size: float = static_field()
 
     def __init__(self, jax_key, head_size, n_emb, block_size, dropout_rate):
         keys = random.split(jax_key, 3)
@@ -22,13 +23,14 @@ class Head(eqx.Module):
         self.value = random.uniform(keys[2], (n_emb, head_size)) * (1 / n_emb**0.5)
         self.tril = jnp.tril(jnp.ones((block_size, block_size)))
         self.dropout_rate = dropout_rate
+        self.head_size = head_size
 
     def __call__(self, x, key, is_training):
         B, T, C = x.shape
 
         k = x @ self.key  # B, T, H
         q = x @ self.query  # B, T, H
-        wei = q @ k.transpose(0, 2, 1) * C**0.5  # B, T, T
+        wei = q @ k.transpose(0, 2, 1) * self.head_size**0.5  # B, T, T
         wei = jnp.where(self.tril[:T, :T] == 0, -jax.numpy.inf, wei)  # B, T, T
         wei = jax.nn.softmax(wei, axis=-1)  # B, T, T
         if is_training:
