@@ -30,7 +30,7 @@ class Head(eqx.Module):
 
         k = x @ self.key  # B, T, H
         q = x @ self.query  # B, T, H
-        wei = q @ k.transpose(0, 2, 1) * self.head_size**0.5  # B, T, T
+        wei = q @ k.transpose(0, 2, 1) * (self.head_size**-0.5)  # B, T, T
         wei = jnp.where(self.tril[:T, :T] == 0, -jax.numpy.inf, wei)  # B, T, T
         wei = jax.nn.softmax(wei, axis=-1)  # B, T, T
         if is_training:
